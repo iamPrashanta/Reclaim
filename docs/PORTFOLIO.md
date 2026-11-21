@@ -36,4 +36,4 @@ shows exact sizes before anything is deleted, and personal files always go to th
 
 **Stack:** PowerShell 5.1 / 7, C# (.NET Framework 4.x and .NET 6+), Windows Task Scheduler, WinRT notifications.
 
-**Links:** GitHub repository (add the URL after pushing).
+**Links:** https://github.com/iamPrashanta/Reclaim
