@@ -32,7 +32,7 @@ shows exact sizes before anything is deleted, and personal files always go to th
   `*.csproj`...), and dates each project by its newest change and git activity.
 - WSL / Docker `.vhdx` compaction with `fstrim` and `diskpart`; optional sparse mode.
 - Self-contained HTML reports (light and dark), JSON output, Task Scheduler integration, Windows toast alerts.
-- Self test that builds a sandbox with junctions, locked, read-only and long paths and checks 28 safety rules.
+- Self test that builds a sandbox with junctions, locked, read-only and long paths and checks 30 safety rules.
 
 **Stack:** PowerShell 5.1 / 7, C# (.NET Framework 4.x and .NET 6+), Windows Task Scheduler, WinRT notifications.
 

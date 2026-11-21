@@ -11,6 +11,7 @@
 | `src/System.ps1` | Handlers (special cleaners), WSL / Docker disks, hibernation, page file, schedule, notifications. |
 | `src/Analyze.ps1` | Space scan, old project folders, duplicates. |
 | `src/Report.ps1` | HTML / JSON reports and `history.csv`. |
+| `src/Move.ps1` | What grew (size snapshots), labels for big folders, moving caches, tool folders and WSL distros off C:, installed-programs report. |
 | `src/UI.ps1` | Menus and the generic item picker. |
 | `src/Engine.cs` | C# engine (measure, delete, scan, find folders, duplicates, size on disk, newest change). |
 | `config/targets.psd1` | The catalog of cleaning targets. |

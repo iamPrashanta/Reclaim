@@ -1,7 +1,7 @@
 # Core helpers: settings, logging, sizes, safety guard, engine loading, delete / measure wrappers.
 # Dot-sourced by Reclaim.ps1. Windows PowerShell 5.1 and PowerShell 7 compatible.
 
-$script:ReclaimVersion = '1.0.0'
+$script:ReclaimVersion = '1.1.0'
 
 # ------------------------------------------------------------------ settings and state
 function Expand-EnvPath([string]$p) {

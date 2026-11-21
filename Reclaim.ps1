@@ -36,6 +36,7 @@ param(
     [switch]$Pause,
     [switch]$NoReport,
     [string]$Analyze,
+    [string]$Growth,
     [string[]]$DevFolders,
     [string[]]$Duplicates,
     [int]$MinMB = 0,
@@ -46,12 +47,12 @@ param(
     [switch]$Json,
     [switch]$SelfTest,
     [switch]$Version,
-    [ValidateSet('disks', 'system', 'dev', 'space', 'duplicates', 'relocate')][string]$Menu
+    [ValidateSet('disks', 'system', 'dev', 'space', 'duplicates', 'relocate', 'move', 'growth')][string]$Menu
 )
 
 $ErrorActionPreference = 'Stop'
 $script:Root = $PSScriptRoot
-foreach ($f in 'Core', 'System', 'Targets', 'Analyze', 'Report', 'UI') { . (Join-Path $script:Root "src\$f.ps1") }
+foreach ($f in 'Core', 'System', 'Targets', 'Analyze', 'Report', 'Move', 'UI') { . (Join-Path $script:Root "src\$f.ps1") }
 
 # values arrive as one string from reclaim.cmd ("a,b"): split them
 function Split-List([string[]]$v) { return @($v | ForEach-Object { $_ -split '[,;]' } | ForEach-Object { $_.Trim().Trim('"') } | Where-Object { $_ }) }
@@ -118,9 +119,12 @@ try {
         switch ($Menu) {
             'disks' { Invoke-VirtualDisksMenu } 'system' { Invoke-SystemMenu } 'dev' { Invoke-DevFoldersMenu }
             'space' { Invoke-SpaceHogsMenu } 'duplicates' { Invoke-DuplicatesMenu } 'relocate' { Invoke-RelocateMenu }
+            'move' { Invoke-MoveMenu } 'growth' { Invoke-GrowthMenu }
         }
         Exit-Reclaim 0
     }
+
+    if ($Growth) { Invoke-GrowthMenu $Growth -NoWait; Exit-Reclaim 0 }
 
     if ($Analyze) {
         $result = Invoke-SpaceScan $Analyze

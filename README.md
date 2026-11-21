@@ -62,7 +62,8 @@ Reclaim turns that into a list you can read: size, risk, and a sentence on what 
 | **Old project folders** | Finds `node_modules`, `.next`, `.nuxt`, `.turbo`, `target`, `build`, `.gradle`, `.dart_tool`, `bin/obj`, `__pycache__`, `.venv`, `vendor`, `Pods`, `.terraform` in your code folders, only when the project file next to them exists, and preselects projects untouched for 30 days. |
 | **Duplicate files** | Same size, then a quick hash of the first and last 64 KB, then full SHA-256. Hard links are never reported as duplicates. Keep the oldest, newest or shortest-path copy; the others go to the Recycle Bin. |
 | **WSL / Docker disks** | Finds every WSL distro and Docker Desktop disk, runs `fstrim` inside the distros, shuts WSL down and compacts the `.vhdx` files. Optionally switches WSL to sparse mode so the disks shrink by themselves. |
-| **Move caches off C:** | Points npm, Yarn, pip, uv, NuGet, Gradle, Puppeteer, Playwright and Hugging Face to another drive and removes the old copy on C:. |
+| **What grew** | Saves a size snapshot of a drive or folder each time you scan it and shows which folders grew since the last check, plus big files that changed in the last week (Podman, WSL and Docker disks that keep growing show up here) with what each one is and what to do about it. |
+| **Move off C:** | Developer caches (npm, Yarn, pip, uv, NuGet, Gradle, Puppeteer, Playwright) pointed to another drive; tool folders moved with their official setting (Android emulators, Flutter pub cache, Rust, Ollama models, Hugging Face models); whole WSL distros moved with `wsl --manage --move`; and a report of the biggest installed programs with the right way to get each one onto D:. |
 | **System options** | Shrink or turn off the hibernation file, page file and restore point information, Compact OS, DISM analysis, Storage Sense, Disk Cleanup. |
 | **Reports** | A self-contained HTML page (light and dark) and JSON for every clean and scan, plus a history of the space freed over time. |
 | **Schedule** | A weekly hidden Quick clean, and a daily notification when a drive drops under 20 GB free. |
@@ -126,7 +127,8 @@ skip the item, or clean anyway; files that are locked are skipped, never forced.
 | 7 | Duplicate files | Identical files by SHA-256; extra copies go to the Recycle Bin. | no |
 | 8 | WSL / Docker disks | Compacts the virtual disks of WSL distros and Docker Desktop. | yes |
 | 9 | System options | Hibernation file, page file, restore points, Compact OS, DISM analysis, Storage Sense, Disk Cleanup. | some |
-| M | Move caches off C: | Moves developer caches to another drive with user environment variables. | no |
+| G | What grew | Which folders grew since the last check, and big files that changed in the last 7 days, labelled (Podman disk, WSL disk, Android SDK...). | no |
+| M | Move off C: | 1 developer caches, 2 tool folders (moved, not deleted), 3 WSL distros, 4 installed programs report. | no |
 | S | Schedule | Weekly Quick clean and a low-space notification. | no |
 | R | Reports | History, total space freed, open the last report. | no |
 | T | Tips | How to keep C: from filling up again ([docs/RECOMMENDATIONS.md](docs/RECOMMENDATIONS.md)). | no |
@@ -190,6 +192,7 @@ reclaim -Clean -Targets npm-cache,gradle-caches -DryRun
 reclaim -Clean -Targets android-avds -Force :: Careful items need -Targets and -Force
 reclaim -Clean -Preset Dev -Skip chrome-ai-model
 reclaim -Analyze C:\                        :: space hogs, saves an HTML report
+reclaim -Growth C:\Users\me                :: what grew since the last check of this folder
 reclaim -DevFolders D:\Code                 :: list build folders, mark stale ones
 reclaim -DevFolders D:\Code -StaleDays 60 -Clean
 reclaim -Duplicates D:\Photos -MinMB 5      :: list duplicate groups
@@ -217,6 +220,7 @@ reclaim -Version
 | `-NoReport` | Do not write HTML/JSON reports. |
 | `-Json` | JSON output for `-List`, `-Scan`, `-Analyze`, `-DevFolders`, `-Duplicates`. |
 | `-Analyze path` | Space hogs for a drive or folder. |
+| `-Growth path` | What grew since the last check of that folder (a snapshot is saved each time). |
 | `-DevFolders path;path` | Old project build folders; add `-Clean` to delete the stale ones, `-StaleDays n` to change the age. |
 | `-Duplicates path;path` | Duplicate groups; `-MinMB n` ignores smaller files. |
 | `-Schedule weekly\|daily\|monthly\|alert\|status\|remove` | Manage the scheduled tasks; `-At HH:mm` sets the time. |
@@ -238,7 +242,11 @@ Set `RECLAIM_PWSH=1` to make `reclaim.cmd` use PowerShell 7 when it is installed
 | Find what is really eating my drive | Menu **5**, or `reclaim -Analyze C:\` |
 | Remove old `node_modules` and build folders | Menu **6**, or `reclaim -DevFolders D:\Code` |
 | Shrink a WSL or Docker disk | Menu **A** (admin), then **8** |
-| Stop caches filling C: | Menu **M**, pick the caches, choose a folder on D: |
+| Find out why C: suddenly lost 20 GB | Menu **G** (run it once now and again later), or menu **5** and look at "Big files changed in the last 7 days" |
+| Stop caches filling C: | Menu **M** > 1, pick the caches, choose a folder on D: |
+| Move Android emulators, Rust, Ollama or Hugging Face models to D: | Menu **M** > 2 |
+| Move a WSL distro (Ubuntu) to D: | Menu **M** > 3 |
+| Get a big program onto D: | Menu **M** > 4 shows the right way for each one |
 | Keep it clean without thinking | `reclaim -Schedule weekly` and `reclaim -Schedule alert` |
 | Use it in a script | `reclaim -Scan -Preset Dev -Json > scan.json` |
 
@@ -253,6 +261,7 @@ Everything Reclaim writes is in `%LOCALAPPDATA%\Reclaim` (for example `C:\Users\
 | `reports\history.csv` | Date, preset, bytes freed, items, report path of every real clean |
 | `logs\reclaim-<date>.log` | Every action and every path that was refused or skipped |
 | `engine\Reclaim.Engine-*.dll` | The compiled engine (rebuilt automatically when `src\Engine.cs` changes) |
+| `snapshots\<folder>-<date>.json` | Folder sizes saved by space scans and "What grew" |
 | `state.json` | Remembered choices: your code folders, duplicate folders, last report |
 
 The Reclaim folder itself is never written to and never cleaned.
@@ -275,7 +284,7 @@ Deleting files is the one thing a cleaner must never get wrong, so Reclaim is bu
 - **Long paths** (over 260 characters, common in `node_modules`) and read-only files are handled.
 - **Logged.** Every action is written to the log.
 - **Tested.** `reclaim -SelfTest` builds a throw-away folder tree in `%TEMP%` (with a junction to a "precious"
-  folder, locked, read-only, old and very long paths, duplicates and hard links) and checks 28 rules, including that
+  folder, locked, read-only, old and very long paths, duplicates and hard links) and checks 30 rules, including that
   the junction target survives.
 
 What Reclaim will **not** do: touch `WinSxS`, `Windows\Installer` or `Package Cache` by hand (it uses DISM instead),
@@ -342,6 +351,10 @@ until the bin is emptied. That is on purpose, so you can restore them.
 
 **Chrome's AI model came back.** Chrome downloads it again while its on-device AI is on. Turn it off in
 `chrome://settings/ai` (or set the policy `GenAILocalFoundationalModelSettings` to `1`).
+
+**C: lost a lot of space and I don't know why.** Menu **G** (or **5**) lists big files that changed in the last week. Virtual disks are the usual cause: Podman (`.local\share\containers`), WSL (`AppData\Local\wsl`) and Docker grow as you use containers and never shrink by themselves. Compact them with **8**, prune unused images and volumes in Podman or Docker, or move a WSL distro with **M** > 3.
+
+**Can Reclaim move my installed programs to D:?** Not by copying their folders: Windows, their updaters and their uninstallers still point to C:, and that breaks them. **M** > 4 lists the biggest ones with the safe way for each (the program's own location setting, or uninstall and install again on D:). Data folders with an official location setting are moved for you by **M** > 2.
 
 **WSL compaction freed little.** Answer yes to *fstrim* first, and make sure Docker Desktop is quit. Then consider
 sparse mode (offered after compacting).

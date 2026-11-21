@@ -237,6 +237,7 @@ function Invoke-SpaceHogsMenu([string]$root) {
     if (-not $script:IsAdmin -and $root.Length -le 3) { Out-Line '  Tip: run as administrator to see inside system folders too.' 'DarkGray' }
     $scan = Invoke-SpaceScan $root
     $report = if (-not $script:NoReport) { Save-ScanReport $scan } else { $null }
+    try { [void](Save-SizeSnapshot $scan) } catch { }
     while ($true) {
         $w = Get-ConsoleWidth
         Out-Line ''
@@ -252,7 +253,8 @@ function Invoke-SpaceHogsMenu([string]$root) {
             Out-Part ('  d{0,-3}' -f ($i + 1)) 'Cyan'
             Out-Part ('{0,10} {1,-12} ' -f (Format-Size $f.Bytes), $bar) 'Gray'
             Out-Part (Limit-Text $f.Relative ($w - 45)) 'White'
-            if ($f.Known) { Out-Line ('  [clean: {0}]' -f $f.Known) 'Green' } else { Out-Line '' }
+            $lbl = Get-PathLabel $f.Path
+            if ($f.Known) { Out-Line ('  [clean: {0}]' -f $f.Known) 'Green' } elseif ($lbl) { Out-Line ('  [{0}]' -f $lbl.Label) 'Yellow' } else { Out-Line '' }
         }
         Out-Line ''
         Out-Line ('  Biggest files (over {0} MB)' -f $script:Cfg.LargeFileMinMB) 'Cyan'
@@ -263,6 +265,7 @@ function Invoke-SpaceHogsMenu([string]$root) {
             Out-Line ('{0,10}  {1:yyyy-MM-dd}  {2}' -f (Format-Size $f.Bytes), $f.LastWrite, (Limit-Text $f.Path ($w - 34))) 'Gray'
         }
         Out-Line ''
+        Show-RecentBigFiles $scan 7
         Out-Line ('  By type: ' + (($scan.Extensions | Select-Object -First 8 | ForEach-Object { '{0} {1}' -f $_.Ext, (Format-Size $_.Bytes) }) -join ' | ')) 'DarkGray'
         if ($report) { Out-Line ("  Full report: {0}" -f $report) 'DarkGray' }
         Out-Line ''
@@ -510,7 +513,6 @@ $script:Relocations = @(
     @{ Name = 'Gradle home';          Var = 'GRADLE_USER_HOME';         Default = '%USERPROFILE%\.gradle';           Folder = 'gradle'; Keep = @('gradle.properties', 'init.d') }
     @{ Name = 'Puppeteer browsers';   Var = 'PUPPETEER_CACHE_DIR';      Default = '%USERPROFILE%\.cache\puppeteer';  Folder = 'puppeteer' }
     @{ Name = 'Playwright browsers';  Var = 'PLAYWRIGHT_BROWSERS_PATH'; Default = '%LOCALAPPDATA%\ms-playwright';    Folder = 'ms-playwright' }
-    @{ Name = 'Hugging Face models';  Var = 'HF_HOME';                  Default = '%USERPROFILE%\.cache\huggingface'; Folder = 'huggingface' }
 )
 
 function Invoke-RelocateMenu {
@@ -632,7 +634,8 @@ function Show-MainMenu {
         Show-MenuItem '7' 'Duplicate files' 'identical files (SHA-256), keep one copy'
         Show-MenuItem '8' 'WSL / Docker disks' 'compact virtual disks that never shrink'
         Show-MenuItem '9' 'System options' 'hibernation, page file, restore points, Compact OS'
-        Show-MenuItem 'M' 'Move caches off C:' 'point npm, Gradle, pip... to another drive'
+        Show-MenuItem 'G' 'What grew' 'which folders grew since the last check, and big files that keep growing'
+        Show-MenuItem 'M' 'Move off C:' 'caches, tool folders, WSL distros, advice for installed programs'
         Out-Line ''
         Show-MenuItem 'S' 'Schedule' 'weekly quick clean, low space alert'
         Show-MenuItem 'R' 'Reports' 'history and total space freed'
@@ -653,7 +656,8 @@ function Show-MainMenu {
                 '7' { Invoke-DuplicatesMenu }
                 '8' { Invoke-VirtualDisksMenu }
                 '9' { Invoke-SystemMenu }
-                'M' { Invoke-RelocateMenu }
+                'M' { Invoke-MoveMenu }
+                'G' { Invoke-GrowthMenu }
                 'S' { Invoke-ScheduleMenu }
                 'R' { Invoke-ReportsMenu }
                 'T' { Show-Tips }

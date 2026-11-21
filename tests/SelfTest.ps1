@@ -2,7 +2,7 @@
 # and the engine against it. Touches nothing outside that sandbox. Run: reclaim -SelfTest
 $ErrorActionPreference = 'Stop'
 $script:Root = Split-Path $PSScriptRoot -Parent
-foreach ($f in 'Core', 'System', 'Targets', 'Analyze', 'Report', 'UI') { . (Join-Path $script:Root "src\$f.ps1") }
+foreach ($f in 'Core', 'System', 'Targets', 'Analyze', 'Report', 'Move', 'UI') { . (Join-Path $script:Root "src\$f.ps1") }
 $script:Cfg = Import-ReclaimSettings
 $script:Quiet = $true
 $script:DryRun = $false
@@ -140,6 +140,15 @@ try {
     Check 'space scan sums folders' {
         $r = [Reclaim.Engine]::Scan((Join-Path $sb 'code'), 2, 5, 1, 365, $null)
         $r.DirBytes[(Join-Path $sb 'code\app')] -eq (20 + 5000 + 3000)
+    }
+    Check 'labels big non-cache folders (Podman, WSL)' {
+        ((Get-PathLabel 'C:\Users\x\.local\share\containers\podman').Label -like 'Podman*') -and ((Get-PathLabel 'C:\Users\x\AppData\Local\wsl\{id}').Label -like 'WSL*') -and (-not (Get-PathLabel 'C:\Users\x\Documents'))
+    }
+    Check 'what grew: a child that explains the growth replaces its parent' {
+        $old = [pscustomobject]@{ Folders = @{ 'C:\u\a' = [int64]1GB; 'C:\u\a\b' = [int64]0 } }
+        $scan = [pscustomobject]@{ Folders = @([pscustomobject]@{ Path = 'C:\u\a'; Relative = 'a'; Bytes = [int64]6GB }, [pscustomobject]@{ Path = 'C:\u\a\b'; Relative = 'a\b'; Bytes = [int64]5GB }) }
+        $r = @(Compare-SizeSnapshot $scan $old)
+        ($r.Count -eq 1) -and ($r[0].Relative -eq 'a\b')
     }
     Check 'HTML report renders' {
         $html = New-HtmlReport 'T' 's' @(@{ Label = 'a'; Value = '1' }) @(@{ Title = 'x'; Headers = @('a', 'b'); Rows = (New-Object System.Collections.ArrayList(, @(, @('1', '2')))); Align = @('', 'n') })
