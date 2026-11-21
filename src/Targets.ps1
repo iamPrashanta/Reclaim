@@ -98,7 +98,7 @@ function Measure-Target($t) {
             else {
                 $s = Measure-ReclaimPath $row.Paths $t.OlderThanDays ("Measuring " + $t.Name)
                 $row.Bytes = $s.Bytes; $row.Files = $s.Files
-                if ($s.Errors -gt 0 -and $t.Admin -and -not $script:IsAdmin) { $row.Note = 'needs admin to see everything' }
+                if ($s.Errors -gt 0 -and $t.Admin -and -not $script:IsAdmin) { $row.Note = 'run as admin to see everything' }
             }
         }
         if ($row.Status -eq 'ready' -and $row.Bytes -eq 0 -and -not $t.Handler) { $row.Status = 'empty' }

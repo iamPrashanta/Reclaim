@@ -64,7 +64,7 @@ function Invoke-Picker($items, [string]$title, [scriptblock]$line, $shortcuts, [
         if ($info) { $keys += ' | i 3 details' }
         Out-Line ("  $keys") 'DarkGray'
         Out-Line '  Enter = continue with the selection, b = back' 'DarkGray'
-        $a = (Read-Host '  >').Trim()
+        $a = (Read-Host '  Select').Trim()
         if ($a -eq '') { return $true }
         if ($a -match '^(b|q|back)$') { return $false }
         if ($a -eq '+') { $page++; continue }
@@ -94,7 +94,7 @@ function Invoke-Picker($items, [string]$title, [scriptblock]$line, $shortcuts, [
 function Format-TargetLine($r) {
     $size = if ($r.Bytes -lt 0) { '      ?' } else { Format-Size $r.Bytes }
     $flags = @()
-    if ($r.Admin) { $flags += 'admin' }
+    if ($r.Admin -and $r.Status -ne 'needs admin') { $flags += 'admin' }
     if ($r.Status -ne 'ready') { $flags += $r.Status }
     if ($r.Note) { $flags += $r.Note }
     $w = [Math]::Max(30, (Get-ConsoleWidth) - 50)
@@ -267,7 +267,7 @@ function Invoke-SpaceHogsMenu([string]$root) {
         if ($report) { Out-Line ("  Full report: {0}" -f $report) 'DarkGray' }
         Out-Line ''
         Out-Line '  s d3 = scan folder d3 | o 2 / o d3 = open in Explorer | r 1,4 = send files to Recycle Bin | h = open report | Enter = back' 'DarkGray'
-        $a = (Read-Host '  >').Trim()
+        $a = (Read-Host '  Select').Trim()
         if ($a -eq '') { return }
         if ($a -eq 'h' -and $report) { Start-Process $report; continue }
         if ($a -match '^s\s*d(\d+)$') { $n = [int]$Matches[1]; if ($n -le $folders.Count) { Invoke-SpaceHogsMenu $folders[$n - 1].Path }; continue }
@@ -454,7 +454,7 @@ function Invoke-SystemMenu {
         Show-MenuItem '6' 'Storage Sense' 'open Windows automatic cleanup settings'
         Show-MenuItem '7' 'Disk Cleanup' 'open the classic Windows Disk Cleanup'
         Out-Line '     Enter = back' 'DarkGray'
-        $a = (Read-Host '  >').Trim()
+        $a = (Read-Host '  Select').Trim()
         switch ($a) {
             '' { return }
             '1' {
@@ -567,7 +567,7 @@ function Invoke-ScheduleMenu {
         Show-MenuItem '2' 'Low space alert' ('daily + at sign-in: a notification when a drive has under {0} GB free' -f $script:Cfg.LowSpaceGB)
         Show-MenuItem '3' 'Remove' 'remove both scheduled tasks'
         Out-Line '     Enter = back' 'DarkGray'
-        $a = (Read-Host '  >').Trim()
+        $a = (Read-Host '  Select').Trim()
         try {
             switch ($a) {
                 '' { return }

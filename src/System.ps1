@@ -48,7 +48,7 @@ $script:Handlers = @{
             param($t)
             $folders = Get-MyRecycleBinFolders -AllUsers:$script:IsAdmin
             $s = Measure-ReclaimPath $folders 0 'Measuring Recycle Bin'
-            $note = if ($script:IsAdmin) { 'all accounts' } else { 'your account only (run as admin for all accounts)' }
+            $note = if ($script:IsAdmin) { 'all accounts' } else { 'your account only; run as admin for all accounts' }
             @{ Paths = $folders; Bytes = $s.Bytes; Note = $note; Status = $(if ($s.Bytes -gt 0) { 'ready' } else { 'empty' }) }
         }
         Clean = {
