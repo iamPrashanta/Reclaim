@@ -1,0 +1,9 @@
+# machine-specific settings and targets
+config/settings.local.psd1
+config/custom-targets.psd1
+# reports and logs live in %LOCALAPPDATA%\Reclaim, but keep stray copies out too
+reports/
+logs/
+*.log
+# compiled engine
+*.dll
